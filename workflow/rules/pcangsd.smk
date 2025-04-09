@@ -2,48 +2,18 @@
 
 
 
-# this is a rule that will build and install pcangsd into
-# the active conda env.
-rule install_pcangsd:
-    params:
-        hash=config["pcangsd"]["version"],
-        url=config["pcangsd"]["url"]
-    output:  
-        flagfile=touch("results/flags/pcangsd_installed")
-    conda:
-        "../envs/pcangsd.yaml"
-    log:
-        "results/logs/install_pcangsd/log.txt"
-    shell:
-        "(TMP=$(mktemp -d) && cd $TMP && "
-        " git clone {params.url} && "
-        " cd pcangsd  && "
-        " git checkout {params.hash} && "
-        " python setup.py build_ext --inplace && "
-        " pip3 install -e .  ) > {log} 2>&1  "
-
-
-
-
-# then, whenever you need to use pcangsd, you call the same
-# conda environment, and have the flagfile as an input
-# depenency to ensure that pcangsd has already been successfully
-# built into that conda env.
-# the active conda env.  Yep! That works nicely.
-
 
 
 # this is for simple pcangsd with no genotype posteriors.  It also computes the selection statistics.
 rule pcangsd_no_gposts:
     input:  
-        flagfile="results/flags/pcangsd_installed",
+        #flagfile="results/flags/pcangsd_installed",
         beagle="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/beagle-gl/beagle-gl.gz"
     params: 
         minMaf = "{min_maf}"
     output:
-        args="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd_plain/maf_{min_maf}/{param_set}/out.args",
         cov="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd_plain/maf_{min_maf}/{param_set}/out.cov",
-        mafs="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd_plain/maf_{min_maf}/{param_set}/out.maf.npy",
+        freqs="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd_plain/maf_{min_maf}/{param_set}/out.freqs",
         sites="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd_plain/maf_{min_maf}/{param_set}/out.sites"
         
     conda:
@@ -56,22 +26,21 @@ rule pcangsd_no_gposts:
         beagle="results/logs/pcangsd_no_gposts/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/maf_{min_maf}/{param_set}/beagle_paste_part.txt",
     shell:
         " (OUTPRE=$(dirname {output.cov})/out && "
-        " pcangsd -b {input.beagle} --minMaf {params.minMaf} -t {threads} --maf_save --sites_save --selection --out $OUTPRE > {log.pcangsd} 2>&1) "
+        " pcangsd -b {input.beagle} --maf {params.minMaf} -t {threads} --maf-save --sites-save --selection --out $OUTPRE > {log.pcangsd} 2>&1) "
 
 
 
 # this one spits out the genotype posteriors and then beagle-izes them
 rule pcangsd_with_gposts:
     input:  
-        flagfile="results/flags/pcangsd_installed",
+        #flagfile="results/flags/pcangsd_installed",
         beagle="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/beagle-gl/beagle-gl.gz"
     params: 
         minMaf = "{min_maf}"
     output:
-        args="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.args",
         cov="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.cov",
-        gposts="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.gpost.tsv",
-        mafs="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.maf.npy",
+        gposts="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.post",
+        freqs="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.freqs",
         sites="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.sites"
         
     conda:
@@ -84,14 +53,14 @@ rule pcangsd_with_gposts:
         beagle="results/logs/pcangsd_with_gposts/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/maf_{min_maf}/beagle_paste_part.txt",
     shell:
         " (OUTPRE=$(dirname {output.gposts})/out && "
-        " pcangsd -b {input.beagle} --minMaf {params.minMaf} -t {threads} --post_save --maf_save --sites_save --out $OUTPRE > {log.pcangsd} 2>&1) "
+        " pcangsd -b {input.beagle} --maf {params.minMaf} -t {threads} --post --maf-save --sites-save --out $OUTPRE > {log.pcangsd} 2>&1) "
         
 
 
 rule pcangsd_beagle_post_bung:
     input:
         beagle="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/beagle-gl/beagle-gl.gz",
-        gposts="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.gpost.tsv",
+        gposts="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.post",
         sites="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.sites",
     output:
         beagle_posts="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/beagle-post.gz",
@@ -114,7 +83,7 @@ rule pcangsd_beagle_post_bung:
 rule pcangsd_beagle_post_slice:
     input:
         beagle="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/beagle-gl/beagle-gl.gz",
-        gposts="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.gpost.tsv",
+        gposts="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.post",
         sites="results/bcf_{bcf_id}/filt_{bcfilt}/{sampsub}/thin_{thin_int}_{thin_start}/pcangsd/maf_{min_maf}/out.sites",
         scaff_grp_path=get_scaff_group_path
     output:

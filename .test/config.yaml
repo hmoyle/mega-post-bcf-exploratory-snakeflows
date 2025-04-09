@@ -52,9 +52,6 @@ bcftools_opts:
 
 #### SETTING SECTIONS #####
 
-pcangsd:
-  url: https://github.com/eriqande/pcangsd.git
-  version: 705ca4c19630ed9c2dd254b0bfd528b8ee25d5c0
 ngsAdmix:
   url: https://github.com/aalbrechtsen/NGSadmix.git
   version: a5cde0502ac1e1cfce994bc9fd72ef1813c262b6
@@ -85,6 +82,10 @@ params:
       angsd_opts: " -doMaf 4 -doAsso 4 "
       whichPhe: " age "
       whichCov: " cohort,PC-1,PC-2,PC-3,PC-4 "
+    age_cohort_noPCs:
+      angsd_opts: " -doMaf 4 -doAsso 4 "
+      whichPhe: " age "
+      whichCov: " cohort "
   ngsadmix:
       four_for_five:
         reps: 4
@@ -114,6 +115,7 @@ targets:
     - ["standard", "all", "age_cohort_4PCs"]
     - ["standard", "males", "age_cohort_4PCs"]
     - ["standard", "females", "age_cohort_4PCs"]
+    - ["standard", "all", "age_cohort_noPCs"]
   beagle_gl: # this is here in case you just want to 
     - ["standard", "males", "dummy"]
   ngsadmix:
